@@ -2,8 +2,9 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatMonsterName } from '@/lib/monster-display';
 
-type Monster = { id: number; name_ko: string; name_en: string | null };
+type Monster = { id: number; name_ko: string; name_en: string | null; element: string | null };
 
 const LS_KEY = 'sw-siege:in-game-name';
 
@@ -123,7 +124,7 @@ function MonsterPicker({
       <label>{label}</label>
       <input
         type="text"
-        value={value ? value.name_ko : q}
+        value={value ? formatMonsterName(value) : q}
         onChange={(e) => {
           onChange(null);
           setQ(e.target.value);
@@ -142,7 +143,7 @@ function MonsterPicker({
               }}
               style={{ padding: 6, cursor: 'pointer', borderBottom: '1px solid #eee' }}
             >
-              {m.name_ko} {m.name_en && m.name_en !== m.name_ko ? `(${m.name_en})` : ''}
+              {formatMonsterName(m)}
             </li>
           ))}
         </ul>

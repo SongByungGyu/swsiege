@@ -3,7 +3,14 @@
     "allow": [
       "Bash(git push *)",
       "Bash(npm run *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(curl -s -b /tmp/sw-cookies.txt -o /dev/null -w '  /onboarding: %{http_code}\\\\n' http://localhost:3000/onboarding)",
+      "Bash(curl -s -b /tmp/sw-cookies.txt -o /dev/null -w '  /decks/new: %{http_code}\\\\n' http://localhost:3000/decks/new)",
+      "Bash(curl -s -b /tmp/sw-cookies.txt -o /dev/null -w '  /decks/1: %{http_code}\\\\n' http://localhost:3000/decks/1)",
+      "Bash(curl -s -b /tmp/sw-cookies.txt -o /dev/null -w '  /decks/1/attacks/new: %{http_code}\\\\n' http://localhost:3000/decks/1/attacks/new)",
+      "Bash(curl -s -b /tmp/sw-cookies.txt -c /tmp/sw-cookies.txt -X POST http://localhost:3000/api/auth/logout)",
+      "Bash(lsof -ti:3000)",
+      "Bash(xargs kill)"
     ]
   }
 }

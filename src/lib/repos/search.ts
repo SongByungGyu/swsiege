@@ -1,16 +1,22 @@
 import { getSupabaseAdmin } from '@/lib/supabase';
 
+export type MonsterDisplay = {
+  id: number;
+  name_ko: string;
+  element: string | null;
+};
+
 export type SearchResultDeck = {
   deck_id: number;
   enemy_guild_id: number;
   enemy_guild_name: string;
   slot_index: number;
-  monsters: number[]; // [m1, m2, m3]
+  monsters: MonsterDisplay[]; // 방어덱 3마리 (이름/속성 포함)
   attacks: AttackCombo[];
 };
 
 export type AttackCombo = {
-  monsters: number[]; // 정렬된 초기 3마리
+  monsters: MonsterDisplay[]; // 정렬된 초기 3마리
   attempts: number;
   wins: number;
   win_rate: number;
@@ -28,7 +34,7 @@ export function aggregateAttacksByDeck(
     initial_monster_3_id: number;
     result: 'win' | 'lose';
   }>
-): Record<number, AttackCombo[]> {
+): Record<number, Array<{ monsters: number[]; attempts: number; wins: number; win_rate: number }>> {
   const byDeck: Record<number, Map<string, { monsters: number[]; attempts: number; wins: number }>> = {};
 
   for (const a of attacks) {
@@ -45,12 +51,11 @@ export function aggregateAttacksByDeck(
     }
   }
 
-  const result: Record<number, AttackCombo[]> = {};
+  const result: Record<number, Array<{ monsters: number[]; attempts: number; wins: number; win_rate: number }>> = {};
   for (const [deckId, map] of Object.entries(byDeck)) {
-    const arr: AttackCombo[] = Array.from(map.values())
+    result[Number(deckId)] = Array.from(map.values())
       .map((v) => ({ ...v, win_rate: v.attempts > 0 ? v.wins / v.attempts : 0 }))
       .sort((a, b) => b.attempts - a.attempts);
-    result[Number(deckId)] = arr;
   }
   return result;
 }
@@ -58,11 +63,11 @@ export function aggregateAttacksByDeck(
 /**
  * 몬스터 id 목록(1~3개)을 받아 그 몬스터(들)을 포함한 방어덱들과
  * 각 방어덱에 대한 우리 길드 공격 통계를 함께 반환.
+ * 응답에는 monster 이름/속성도 함께 join되어 클라이언트가 별도 조회 불필요.
  */
 export async function searchDecksByMonsters(monsterIds: number[]): Promise<SearchResultDeck[]> {
   const db = getSupabaseAdmin();
 
-  // 방어덱: monster_1, 2, 3 어느 슬롯에라도 매칭되면 포함
   let decksQuery = db
     .from('defense_deck')
     .select('id, enemy_guild_id, slot_index, monster_1_id, monster_2_id, monster_3_id');
@@ -106,12 +111,40 @@ export async function searchDecksByMonsters(monsterIds: number[]): Promise<Searc
     }))
   );
 
+  // 결과에 등장하는 모든 monster_id를 모아서 한 번에 fetch.
+  const monsterIdSet = new Set<number>();
+  for (const d of filtered) {
+    monsterIdSet.add(d.monster_1_id);
+    monsterIdSet.add(d.monster_2_id);
+    monsterIdSet.add(d.monster_3_id);
+  }
+  for (const combos of Object.values(grouped)) {
+    for (const combo of combos) {
+      combo.monsters.forEach((id) => monsterIdSet.add(id));
+    }
+  }
+  const monsterRows = await db
+    .from('monster')
+    .select('id, name_ko, element')
+    .in('id', Array.from(monsterIdSet));
+  if (monsterRows.error) throw monsterRows.error;
+  const monsterMap = new Map<number, MonsterDisplay>(
+    (monsterRows.data ?? []).map((m) => [m.id, { id: m.id, name_ko: m.name_ko, element: m.element }])
+  );
+  const lookup = (id: number): MonsterDisplay =>
+    monsterMap.get(id) ?? { id, name_ko: `#${id}`, element: null };
+
   return filtered.map((d) => ({
     deck_id: d.id,
     enemy_guild_id: d.enemy_guild_id,
     enemy_guild_name: guildMap.get(d.enemy_guild_id) ?? '(unknown)',
     slot_index: d.slot_index,
-    monsters: [d.monster_1_id, d.monster_2_id, d.monster_3_id],
-    attacks: grouped[d.id] ?? [],
+    monsters: [lookup(d.monster_1_id), lookup(d.monster_2_id), lookup(d.monster_3_id)],
+    attacks: (grouped[d.id] ?? []).map((c) => ({
+      monsters: c.monsters.map(lookup),
+      attempts: c.attempts,
+      wins: c.wins,
+      win_rate: c.win_rate,
+    })),
   }));
 }

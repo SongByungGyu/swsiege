@@ -2,8 +2,9 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { formatMonsterName } from '@/lib/monster-display';
 
-type Monster = { id: number; name_ko: string };
+type Monster = { id: number; name_ko: string; element: string | null };
 const LS_KEY = 'sw-siege:in-game-name';
 
 export default function NewAttackPage() {
@@ -113,7 +114,7 @@ function MonsterPicker({
       <label>{label}</label>
       <input
         type="text"
-        value={value ? value.name_ko : q}
+        value={value ? formatMonsterName(value) : q}
         onChange={(e) => {
           onChange(null);
           setQ(e.target.value);
@@ -132,7 +133,7 @@ function MonsterPicker({
               }}
               style={{ padding: 6, cursor: 'pointer', borderBottom: '1px solid #eee' }}
             >
-              {m.name_ko}
+              {formatMonsterName(m)}
             </li>
           ))}
         </ul>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { formatMonsterName } from '@/lib/monster-display';
 
 type Deck = {
   id: number;
@@ -13,7 +14,7 @@ type Deck = {
   captured_at: string;
 };
 type Guild = { id: number; name: string };
-type Monster = { id: number; name_ko: string; name_en: string | null };
+type Monster = { id: number; name_ko: string; name_en: string | null; element: string | null };
 type Attack = { id: number; attacker_in_game_name: string; result: 'win' | 'lose'; attacked_at: string };
 
 export default function DeckDetailPage() {
@@ -41,7 +42,7 @@ export default function DeckDetailPage() {
 
   const monsterName = (mid: number) => {
     const m = monsters.find((x) => x.id === mid);
-    return m ? m.name_ko : `#${mid}`;
+    return m ? formatMonsterName(m) : `#${mid}`;
   };
 
   return (

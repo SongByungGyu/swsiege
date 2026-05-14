@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatMonsterName } from '@/lib/monster-display';
 
-type Monster = { id: number; name_ko: string };
-type AttackCombo = { monsters: number[]; attempts: number; wins: number; win_rate: number };
+type Monster = { id: number; name_ko: string; element: string | null };
+type AttackCombo = { monsters: Monster[]; attempts: number; wins: number; win_rate: number };
 type ResultDeck = {
   deck_id: number;
   enemy_guild_name: string;
   slot_index: number;
-  monsters: number[];
+  monsters: Monster[];
   attacks: AttackCombo[];
 };
 
@@ -20,7 +21,6 @@ export default function HomePage() {
   const [me, setMe] = useState<string | null>(null);
   const [picked, setPicked] = useState<Monster[]>([]);
   const [results, setResults] = useState<ResultDeck[]>([]);
-  const [monsterMap, setMonsterMap] = useState<Map<number, string>>(new Map());
 
   useEffect(() => {
     const stored = localStorage.getItem(LS_KEY);
@@ -39,29 +39,8 @@ export default function HomePage() {
       if (res.ok) {
         const data = await res.json();
         setResults(data.decks);
-        // 결과에 등장한 monster_id에 대한 이름 fetch (없는 것만)
-        const allIds = new Set<number>();
-        for (const d of data.decks as ResultDeck[]) {
-          d.monsters.forEach((id) => allIds.add(id));
-          d.attacks.forEach((a) => a.monsters.forEach((id) => allIds.add(id)));
-        }
-        const missing = Array.from(allIds).filter((id) => !monsterMap.has(id));
-        if (missing.length > 0) {
-          // 간단히 자동완성 API를 monster_id 매핑용으로 재사용하기 어려우니
-          // 빈 q로 부르고 클라이언트 캐시. 더 좋은 방법은 별도 endpoint지만 Phase 2는 단순화.
-          const r = await fetch(`/api/monsters?q=`);
-          if (r.ok) {
-            const json = await r.json();
-            const m = new Map(monsterMap);
-            for (const x of json.monsters as Monster[]) m.set(x.id, x.name_ko);
-            setMonsterMap(m);
-          }
-        }
       }
     })();
-    // monsterMap은 점진적 누적 캐시라 의도적으로 deps에서 제외.
-    // 포함하면 setMonsterMap이 effect를 재실행시켜 동일 검색을 반복함.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [picked]);
 
   async function onLogout() {
@@ -69,8 +48,6 @@ export default function HomePage() {
     router.replace('/login');
     router.refresh();
   }
-
-  const monsterName = (id: number) => monsterMap.get(id) ?? `#${id}`;
 
   return (
     <main style={{ maxWidth: 900, margin: '24px auto', padding: 16, fontFamily: 'sans-serif' }}>
@@ -103,7 +80,7 @@ export default function HomePage() {
                 </a>
               </h3>
               <p style={{ margin: '4px 0', color: '#555' }}>
-                {d.monsters.map(monsterName).join(' / ')}
+                {d.monsters.map(formatMonsterName).join(' / ')}
               </p>
               {d.attacks.length === 0 ? (
                 <p style={{ color: '#999' }}>아직 공격한 적 없음 (정찰만)</p>
@@ -120,7 +97,7 @@ export default function HomePage() {
                   <tbody>
                     {d.attacks.map((a, i) => (
                       <tr key={i} style={{ borderTop: '1px solid #eee' }}>
-                        <td>{a.monsters.map(monsterName).join(' / ')}</td>
+                        <td>{a.monsters.map(formatMonsterName).join(' / ')}</td>
                         <td align="right">{a.attempts}</td>
                         <td align="right">{a.wins}</td>
                         <td align="right">{Math.round(a.win_rate * 100)}%</td>
@@ -164,7 +141,7 @@ function MonsterMultiPicker({
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
         {picked.map((m) => (
           <span key={m.id} style={{ background: '#eef', padding: '4px 8px', borderRadius: 4 }}>
-            {m.name_ko}{' '}
+            {formatMonsterName(m)}{' '}
             <button onClick={() => onChange(picked.filter((p) => p.id !== m.id))} style={{ marginLeft: 4 }}>
               ×
             </button>
@@ -187,7 +164,7 @@ function MonsterMultiPicker({
               onClick={() => { onChange([...picked, m]); setQ(''); }}
               style={{ padding: 6, cursor: 'pointer', borderBottom: '1px solid #eee' }}
             >
-              {m.name_ko}
+              {formatMonsterName(m)}
             </li>
           ))}
         </ul>

@@ -34,7 +34,7 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
 
   const monsters = await db
     .from('monster')
-    .select('id, name_ko, name_en')
+    .select('id, name_ko, name_en, element')
     .in('id', [deck.data.monster_1_id, deck.data.monster_2_id, deck.data.monster_3_id]);
 
   const attacks = await db
