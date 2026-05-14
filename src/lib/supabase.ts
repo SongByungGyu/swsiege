@@ -1,12 +1,13 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database';
 
-let cached: SupabaseClient | null = null;
+let cached: SupabaseClient<Database> | null = null;
 
 /**
  * 서버 전용 Supabase 클라이언트.
  * service_role 키를 사용하므로 절대 클라이언트 번들에 포함되면 안 됨.
  */
-export function getSupabaseAdmin(): SupabaseClient {
+export function getSupabaseAdmin(): SupabaseClient<Database> {
   if (cached) return cached;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,7 +19,7 @@ export function getSupabaseAdmin(): SupabaseClient {
     );
   }
 
-  cached = createClient(url, key, {
+  cached = createClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   return cached;
