@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { requireSession } from '@/lib/require-session';
 import { searchMonstersByName } from '@/lib/repos/monsters';
 
+// GET 라우트지만 매 요청마다 세션 검증 + DB 조회가 필요하므로 동적.
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   try {
     await requireSession();
