@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '@/lib/session';
+import { getServerSession } from '@/lib/require-session';
 import { verifyAppPassword } from '@/lib/auth';
 
 export async function POST(req: Request) {
@@ -21,7 +19,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '비밀번호가 틀렸습니다' }, { status: 401 });
   }
 
-  const session = await getIronSession<SessionData>(cookies(), sessionOptions);
+  const session = await getServerSession();
   session.isAuthenticated = true;
   await session.save();
 
