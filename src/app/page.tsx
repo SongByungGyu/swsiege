@@ -59,6 +59,9 @@ export default function HomePage() {
         }
       }
     })();
+    // monsterMap은 점진적 누적 캐시라 의도적으로 deps에서 제외.
+    // 포함하면 setMonsterMap이 effect를 재실행시켜 동일 검색을 반복함.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [picked]);
 
   async function onLogout() {
