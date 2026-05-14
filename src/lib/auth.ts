@@ -7,7 +7,8 @@ export function verifyAppPassword(input: string): boolean {
   }
 
   // 길이가 다르면 timingSafeEqual이 throw하므로 미리 처리.
-  // 단, 길이 자체로 정보가 새지 않게 항상 같은 시간 비교를 시도한다.
+  // 길이 불일치 경로에서도 동일한 양의 비교 연산을 수행해 미세한 시간 차이를 줄인다.
+  // (단, 입력 길이 자체의 노출은 막지 못함 — 단일 공유 비번 모델에서 허용한 트레이드오프)
   const inputBuf = Buffer.from(input, 'utf8');
   const expectedBuf = Buffer.from(expected, 'utf8');
 
